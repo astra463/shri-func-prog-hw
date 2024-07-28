@@ -14,38 +14,62 @@
  * Иногда промисы от API будут приходить в состояние rejected, (прямо как и API в реальной жизни)
  * Ответ будет приходить в поле {result}
  */
- import Api from '../tools/api';
+import Api from "../tools/api";
 
- const api = new Api();
+const api = new Api();
 
- /**
-  * Я – пример, удали меня
-  */
- const wait = time => new Promise(resolve => {
-     setTimeout(resolve, time);
- })
+const validateNumberString = (str) => {
+	const num = parseFloat(str);
+	if (
+		!/^\d+(\.\d+)?$/.test(str) ||
+		str.length > 9 ||
+		str.length < 3 ||
+		num <= 0
+	) {
+		throw new Error("ValidationError");
+	}
+	return num;
+};
 
- const processSequence = ({value, writeLog, handleSuccess, handleError}) => {
-     /**
-      * Я – пример, удали меня
-      */
-     writeLog(value);
+const roundNumber = (num) => Math.round(num);
 
-     api.get('https://api.tech/numbers/base', {from: 2, to: 10, number: '01011010101'}).then(({result}) => {
-         writeLog(result);
-     });
+const convertToBinary = (number) =>
+	api.get("https://api.tech/numbers/base", { from: 10, to: 2, number });
 
-     wait(2500).then(() => {
-         writeLog('SecondLog')
+const getAnimalById = (id) => api.get(`https://animals.tech/${id}`, {});
 
-         return wait(1500);
-     }).then(() => {
-         writeLog('ThirdLog');
+const processSequence = ({ value, writeLog, handleSuccess, handleError }) => {
+	const logAndHandleError = (error) => {
+		handleError(error.message);
+		writeLog(error.message);
+	};
 
-         return wait(400);
-     }).then(() => {
-         handleSuccess('Done');
-     });
- }
+	try {
+		writeLog(value);
+		const number = validateNumberString(value);
+		const roundedNumber = roundNumber(number);
+		writeLog(roundedNumber);
+
+		convertToBinary(roundedNumber)
+			.then(({ result }) => {
+				writeLog(result);
+
+				const length = result.length;
+				writeLog(length);
+
+				const squared = roundedNumber ** 2;
+				writeLog(squared);
+
+				const remainder = squared % 3;
+				writeLog(remainder);
+
+				return getAnimalById(remainder);
+			})
+			.then(({ result }) => handleSuccess(result))
+			.catch(logAndHandleError);
+	} catch (error) {
+		logAndHandleError(error);
+	}
+};
 
 export default processSequence;
